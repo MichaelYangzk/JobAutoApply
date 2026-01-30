@@ -11,7 +11,7 @@ import os
 from pathlib import Path
 
 # Path to job-auto-apply project
-JOB_APPLY_DIR = os.getenv("JOB_APPLY_DIR", str(Path(__file__).parent.parent / "job-auto-apply"))
+JOB_APPLY_DIR = os.getenv("JOB_APPLY_DIR", str(Path(__file__).parent))
 NODE_BIN = os.getenv("NODE_BIN", "node")
 CLI_ENTRY = os.path.join(JOB_APPLY_DIR, "src", "index.js")
 
