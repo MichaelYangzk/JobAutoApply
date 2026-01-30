@@ -4,12 +4,20 @@ Pull a OneDrive-hosted `Jobs.xlsx`, classify new rows with an LLM, and sync stru
 
 ---
 
-## ✨ Highlights
-- 🟢 One-button run: copy from OneDrive, merge safely, label emails, and push to Notion in one command.
-- 🧠 Trustworthy labels: stage, priority, next action, importance score, and summary stay within allowed enums/ranges.
-- 🔁 Notion-friendly: missing properties are created, existing pages are updated, and duplicate body text is avoided.
-- 🛡️ Safe merges: local edits win unless you force refresh; terminal stages cannot roll back.
-- 📊 Excel-ready: cleaned artifacts and preserved styling keep the sheet easy to scan.
+## Program features
+
+1) Clear, consistent labels
+- The LLM assigns stage, priority, next action, and an importance score with timestamps. Outputs stay within allowed values, so you don’t get surprises.
+- Example: stage set to `interview_scheduled`, priority updated to `high`, next action determined as `schedule`, importance score calculated as `0.82`, summary generated as `"Confirm 2pm interview with Acme"`.
+
+2) Notion stays in sync
+- Missing properties are created for you, pages are updated or created using saved page ids, and duplicate body text is avoided to keep timelines readable.
+
+3) Protect work in progress
+- Local edits stay in control during merge, NEW rows are protected unless you force-refresh, and terminal stages cannot be rolled back.
+
+4) Easy to review in Excel
+- Excel artifacts are cleaned, table styling is preserved when possible, and the sheet remains easy to scan by humans.
 
 ---
 
