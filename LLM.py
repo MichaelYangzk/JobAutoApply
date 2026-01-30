@@ -2,20 +2,29 @@ from __future__ import annotations
 from pathlib import Path
 import os
 import sys
+import json
 from typing import Literal
 
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field, ConfigDict
 
-from openai import OpenAI
-
 load_dotenv(Path(__file__).with_name(".env"))
 
-if not os.getenv("OPENAI_API_KEY"):
-    print("No APIKEY")
-    sys.exit(1)
+# Support both Anthropic (Claude) and OpenAI backends
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "anthropic")  # "anthropic" or "openai"
 
-client = OpenAI()
+if LLM_PROVIDER == "anthropic":
+    import anthropic
+    if not os.getenv("ANTHROPIC_API_KEY"):
+        print("No ANTHROPIC_API_KEY")
+        sys.exit(1)
+    client = anthropic.Anthropic()
+else:
+    from openai import OpenAI
+    if not os.getenv("OPENAI_API_KEY"):
+        print("No OPENAI_API_KEY")
+        sys.exit(1)
+    client = OpenAI()
 
 Stage = Literal[
     "applied",
@@ -190,7 +199,41 @@ Email body:
 {body}
 """.strip()
 
-def call_llm_structured(prompt: str) -> dict:
+def _call_anthropic(prompt: str) -> dict:
+    """Call Claude API with tool_use for structured output."""
+    model = os.getenv("ANTHROPIC_MODEL", "claude-3-5-haiku-20241022")
+
+    # Define the schema as a tool so Claude returns structured JSON
+    tool_schema = LLMResult.model_json_schema()
+    # Remove pydantic metadata that Anthropic doesn't need
+    tool_schema.pop("title", None)
+    tool_schema.pop("$defs", None)
+
+    response = client.messages.create(
+        model=model,
+        max_tokens=1024,
+        tools=[{
+            "name": "classify_email",
+            "description": "Classify a job application email into structured fields.",
+            "input_schema": tool_schema,
+        }],
+        tool_choice={"type": "tool", "name": "classify_email"},
+        messages=[{"role": "user", "content": prompt}],
+    )
+
+    # Extract tool use result
+    for block in response.content:
+        if block.type == "tool_use":
+            result = block.input
+            # Validate with Pydantic
+            obj = LLMResult(**result)
+            return obj.model_dump()
+
+    raise ValueError("Claude did not return tool_use output")
+
+
+def _call_openai(prompt: str) -> dict:
+    """Call OpenAI API with structured output."""
     r = client.responses.parse(
         model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
         input=prompt,
@@ -198,3 +241,10 @@ def call_llm_structured(prompt: str) -> dict:
     )
     obj: LLMResult = r.output_parsed
     return obj.model_dump()
+
+
+def call_llm_structured(prompt: str) -> dict:
+    if LLM_PROVIDER == "anthropic":
+        return _call_anthropic(prompt)
+    else:
+        return _call_openai(prompt)
